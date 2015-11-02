@@ -1502,6 +1502,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
         if (upgradeVersion == 92) {
             SQLiteStatement stmt = null;
+            File setupWizardApk = new File("/system/priv-app/SetupWizard/SetupWizard.apk");
+
             try {
                 stmt = db.compileStatement("INSERT OR IGNORE INTO secure(name,value)"
                         + " VALUES(?,?);");
@@ -1514,9 +1516,15 @@ class DatabaseHelper extends SQLiteOpenHelper {
                     loadSetting(stmt, Settings.Secure.USER_SETUP_COMPLETE,
                             deviceProvisioned);
                 } else {
-                    // otherwise use the default
-                    loadBooleanSetting(stmt, Settings.Secure.USER_SETUP_COMPLETE,
-                            R.bool.def_user_setup_complete);
+                    // don't require user setup if setupwizard is not installed
+                    if (setupWizardApk.exists()) {
+                      // otherwise use the default (if setupwizard is installed)
+                      loadBooleanSetting(stmt, Settings.Secure.USER_SETUP_COMPLETE,
+                              R.bool.def_user_setup_complete);
+                    } else {
+                        // set Settings.Secure.USER_SETUP_COMPLETE to 1 (true) if setupwizard is not installed
+                        loadSetting(stmt, Settings.Secure.USER_SETUP_COMPLETE, 1);
+                    }
                 }
             } finally {
                 if (stmt != null) stmt.close();
